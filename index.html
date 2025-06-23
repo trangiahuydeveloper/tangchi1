@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TIENDEV - Love Animation</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            height: 100vh;
+            font-family: 'Arial', sans-serif;
+            background: radial-gradient(circle at center, #1a0012, #000000);
+            cursor: grab;
+        }
+
+        body:active {
+            cursor:auto;
+        }
+
+        #container {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            perspective: 2000px;
+            perspective-origin: 50% 50%;
+            transform-style: preserve-3d;
+            overflow: hidden;
+        }
+
+        #scene {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+        }
+
+.text-container {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    will-change: transform;
+    transition: transform 0.15s ease-out;
+    backface-visibility: hidden;
+    perspective: 1500px;
+}
+
+        .floating-text {
+            position: absolute;
+            left: 50%;
+            transform-style: preserve-3d;
+            will-change: transform;
+            white-space: nowrap;
+            pointer-events: none;
+            backface-visibility: hidden;
+            transition: all 0.3s ease;
+            transform-origin: center center;
+            text-align: center;
+            transform: translateX(-50%);
+        }
+
+        .depth-layer-1 {
+            transform: translateZ(-250px) scale(1.2);
+            opacity: 0.5;
+            filter: blur(1.5px);
+            font-size: calc(22px + 1vw);
+        }
+
+        .depth-layer-2 {
+            transform: translateZ(-125px) scale(1.1);
+            opacity: 0.7;
+            filter: blur(0.8px);
+            font-size: calc(26px + 1vw);
+        }
+
+        .depth-layer-3 {
+            transform: translateZ(0) scale(1);
+            opacity: 0.9;
+            filter: blur(0);
+            font-size: calc(30px + 1vw);
+            text-shadow: 0 0 15px currentColor;
+        }
+
+        .depth-layer-4 {
+            transform: translateZ(125px) scale(0.9);
+            opacity: 1;
+            filter: blur(0);
+            font-size: calc(34px + 1vw);
+            text-shadow: 0 0 25px currentColor;
+        }
+
+        .depth-layer-5 {
+            transform: translateZ(250px) scale(0.8);
+            opacity: 1;
+            filter: blur(0);
+            font-size: calc(38px + 1vw);
+            text-shadow: 0 0 35px currentColor;
+        }
+
+        .heart-bg {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center,
+                rgba(255, 105, 180, 0.15) 0%,
+                rgba(255, 20, 147, 0.08) 30%,
+                rgba(255, 20, 147, 0.02) 60%,
+                transparent 80%);
+            pointer-events: none;
+            animation: heartPulse 5s infinite ease-in-out;
+            z-index: -1;
+        }
+
+        .star {
+            position: absolute;
+            background: #ff69b4;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: twinkle var(--duration) infinite alternate ease-in-out;
+            box-shadow: 0 0 3px #ff69b4;
+        }
+
+        .nebula {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(40px);
+            opacity: 0.15;
+            mix-blend-mode: screen;
+            pointer-events: none;
+            animation: nebulaFloat 20s infinite alternate ease-in-out;
+        }
+
+        .particle {
+            position: absolute;
+            pointer-events: none;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        @keyframes twinkle {
+            0% { opacity: var(--min-opacity); }
+            100% { opacity: var(--max-opacity); }
+        }
+
+        @keyframes nebulaFloat {
+            0% { transform: translate3d(0, 0, 0); }
+            100% { transform: translate3d(20px, 20px, 50px); }
+        }
+
+        @keyframes heartPulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.5; }
+        }
+        .floating-image {
+    position: absolute;
+    left: 50%;
+    transform-style: preserve-3d;
+    will-change: transform;
+    pointer-events: none;
+    backface-visibility: hidden;
+    transition: all 0.3s ease;
+    transform-origin: center center;
+    width: 100px; /* Kích thước ảnh mặc định */
+    height: auto;
+    transform: translateX(-50%);
+}
+
+.image-container {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    will-change: transform;
+    transition: transform 0.15s ease-out;
+    backface-visibility: hidden;
+    perspective: 1500px;
+}
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="scene">
+            <div class="heart-bg"></div>
+        </div>
+    </div>
+
+
+<script>
+
+        const texts = [
+            "IU MỖI MÌNH CHỊ NHI..",
+            "C LÀ NGUOI DTH NHAT ROI."
+            
+            
+        ];
+
+        const icons = ["❤️", "💖", "💝", "💗", "🌹", "✨", "💫", "⭐"];
+        const colors = [
+            '#ff69b4',
+            '#ff1493',
+            '#ff007f',
+            '#ff69b4',
+            '#ffb6c1'
+        ];
+
+        const container = document.getElementById('container');
+        const scene = document.getElementById('scene');
+        const maxElements = 50;
+        let rotateX = 0, rotateY = 0;
+        let scale = 1;
+        let isDragging = false;
+        let startX, startY, lastX, lastY;
+        const textElements = [];
+
+        function createTextContainer() {
+            const textContainer = document.createElement('div');
+            textContainer.className = 'text-container';
+            scene.appendChild(textContainer);
+            return textContainer;
+        }
+
+function createFloatingText(container) {
+    // Thêm mảng ảnh của bạn
+    const images = [
+    './1.png',
+    './2.png',
+    './3.png',
+    './4.png',
+    './5.png',
+    './6.png',
+    './7.png',
+    './8.png',
+    './9.png'
+    
+
+];
+
+    // Số thứ tự phần tử hiện tại
+    const isImage = textElements.length % 4 === 0; // Cứ mỗi 5 phần tử sẽ là 1 ảnh
+
+    let element;
+    if (isImage) {
+        // Tạo ảnh
+        element = document.createElement('img');
+        element.className = 'floating-text floating-image';
+        element.src = images[Math.floor(Math.random() * images.length)];
+        element.style.width = `${Math.random() * 60 + 60}px`; // random từ 60px-120px
+        element.style.height = 'auto';
+        element.style.userSelect = 'none';
+        element.style.filter = 'drop-shadow(0 0 15px #ff69b4)';
+    } else {
+        // Tạo text hoặc icon
+        element = document.createElement('div');
+        element.className = 'floating-text';
+        const isIcon = textElements.length % 2 === 0;
+        if (isIcon) {
+            element.innerText = icons[Math.floor(Math.random() * icons.length)];
+        } else {
+            element.innerText = texts[Math.floor(Math.random() * texts.length)];
+        }
+    }
+
+    // Thiết lập layers và vị trí
+    const depthLayers = ['depth-layer-1', 'depth-layer-2', 'depth-layer-3', 'depth-layer-4', 'depth-layer-5'];
+    const layerIndex = Math.floor(Math.random() * depthLayers.length);
+    const selectedLayer = depthLayers[layerIndex];
+    element.classList.add(selectedLayer);
+
+    // Tính toán vị trí ngẫu nhiên trên toàn màn hình
+    const viewportWidth = window.innerWidth;
+    const spreadWidth = viewportWidth * 0.8;
+    const x = (Math.random() * spreadWidth) - (spreadWidth / 2);
+
+    // Độ sâu của các lớp với khoảng cách ngẫu nhiên
+    const baseZ = selectedLayer.includes('1') ? -250 :
+                  selectedLayer.includes('2') ? -125 :
+                  selectedLayer.includes('3') ? 0 :
+                  selectedLayer.includes('4') ? 125 : 250;
+    const randomZ = baseZ + (Math.random() * 50 - 25);
+
+    // Hiệu ứng màu sắc và độ trong suốt
+    const depthFactor = Math.abs(randomZ) / 500;
+    const hue = 330 + Math.random() * 30;
+    const saturation = 100 - depthFactor * 15;
+    const lightness = 85 - depthFactor * 25;
+
+    // Set opacity ban đầu là 0 để fade in
+    element.style.opacity = '0';
+    if (!isImage) {
+        element.style.color = `hsla(${hue}, ${saturation}%, ${lightness}%, ${1 - depthFactor * 0.15})`;
+        // Tăng cường hiệu ứng phát sáng
+        const glowIntensity = 1 - depthFactor * 0.4;
+        element.style.textShadow = `
+            0 0 ${20 * glowIntensity}px currentColor,
+            0 0 ${30 * glowIntensity}px currentColor,
+            0 0 ${40 * glowIntensity}px currentColor
+        `;
+    }
+
+    // Thêm rotation ngẫu nhiên ban đầu
+    const initialRotation = Math.random() * 20 - 10;
+
+    // Thiết lập transform ban đầu với rotation
+    element.style.transform = `
+        translate3d(${x}px, -50vh, ${randomZ}px)
+        rotateY(${initialRotation}deg)
+        rotateX(${Math.random() * 10 - 5}deg)
+    `;
+
+    // Thêm element vào container
+    container.appendChild(element);
+
+    // Tính toán các thông số chuyển động
+    const baseSpeed = 0.05;
+    const randomFactor = Math.random() * 0.08;
+    const layerSpeedFactor = selectedLayer.includes('1') ? 0.7 :
+                        selectedLayer.includes('2') ? 0.85 :
+                        selectedLayer.includes('3') ? 1 :
+                        selectedLayer.includes('4') ? 1.15 : 1.3;
+
+    // Fade in sau độ trễ ngẫu nhiên
+    const startDelay = Math.random() * 3000;
+    setTimeout(() => {
+        element.style.opacity = '1';
+        element.style.transition = 'opacity 0.5s ease-in';
+    }, startDelay);
+
+    // Thêm vào mảng textElements với các thuộc tính chuyển động đa dạng hơn
+    textElements.push({
+        element,
+        x,
+        z: randomZ,
+        speed: (baseSpeed + randomFactor) * layerSpeedFactor,
+        y: -50 - (Math.random() * 20),
+        layer: selectedLayer,
+        wobbleSpeed: Math.random() * 0.002 + 0.001,
+        wobbleAmount: Math.random() * 0.8 + 0.3,
+        startDelay: startDelay,
+        rotationSpeed: Math.random() * 0.002 - 0.001,
+        verticalWobbleSpeed: Math.random() * 0.003 + 0.001,
+        initialScale: 0.8 + Math.random() * 0.4,
+        horizontalDrift: Math.random() * 2 - 1,
+        rotationOffset: initialRotation
+    });
+}
+function updateElements() {
+    const textContainer = scene.querySelector('.text-container');
+    if (!textContainer) return;
+
+    textElements.forEach((text, index) => {
+        // Thêm độ trễ ban đầu
+        if (Date.now() < text.startDelay) return;
+
+        // Tính toán chuyển động rơi theo đường cong
+        const fallProgress = Math.min((text.y + 50) / 200, 1);
+        const easedSpeed = text.speed * (1 - Math.pow(fallProgress, 2) * 0.3);
+        text.y += easedSpeed;
+
+        // Tạo chuyển động lắc tự nhiên
+        const time = Date.now() * text.wobbleSpeed;
+        const horizontalWobble = Math.sin(time) * text.wobbleAmount * (1 - fallProgress);
+        const verticalWobble = Math.cos(time * 1.5) * 0.3 * (1 - fallProgress);
+        
+        // Hiệu ứng xoay nhẹ theo độ sâu
+        const rotateAmount = text.z > 0 ? 
+            Math.sin(time * 0.5) * 2 * (1 - fallProgress) : 
+            Math.sin(time * 0.5) * -2 * (1 - fallProgress);
+
+        // Áp dụng transform với các hiệu ứng
+        text.element.style.transform = `
+            translate3d(
+                ${text.x + horizontalWobble * 5}px, 
+                ${text.y + verticalWobble}vh, 
+                ${text.z}px
+            )
+            rotateY(${rotateAmount}deg)
+            rotateX(${verticalWobble * 2}deg)
+            rotateZ(${horizontalWobble * 1.5}deg)
+        `;
+
+        // Điều chỉnh opacity dựa trên vị trí
+        const fadeStart = 140;
+        const fadeEnd = 150;
+        if (text.y > fadeStart) {
+            const fadeProgress = (text.y - fadeStart) / (fadeEnd - fadeStart);
+            text.element.style.opacity = 1 - fadeProgress;
+        }
+
+        // Tạo mới khi phần tử đạt đến cuối
+        if (text.y > fadeEnd) {
+            text.element.remove();
+            textElements.splice(index, 1);
+            createFloatingText(textContainer);
+        }
+    });
+    requestAnimationFrame(updateElements);
+}
+
+        function createParticles() {
+            for (let i = 0; i < 200; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                const size = Math.random() * 3 + 1;
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                particle.style.left = `${Math.random() * 100}%`;
+                particle.style.top = `${Math.random() * 100}%`;
+                scene.appendChild(particle);
+            }
+        }
+
+function init() {
+    createParticles();
+    const textContainer = createTextContainer();
+    
+    // Tạo text với khoảng cách thời gian ngẫu nhiên
+    for (let i = 0; i < maxElements; i++) {
+        setTimeout(() => {
+            createFloatingText(textContainer);
+        }, i * (Math.random() * 300 + 100)); // Khoảng cách thời gian ngẫu nhiên
+    }
+    updateElements();
+}
+
+        init();
+    </script>
+</body>
+</html>
